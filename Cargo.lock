@@ -2296,6 +2296,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "h2"
+version = "0.4.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fa82e28a107a8cc405f0839610bdc9b15f1e25ec7d696aa5cf173edbcb1486ab"
+dependencies = [
+ "atomic-waker",
+ "bytes",
+ "fnv",
+ "futures-core",
+ "futures-sink",
+ "http 1.1.0",
+ "indexmap 2.3.0",
+ "slab",
+ "tokio",
+ "tokio-util",
+ "tracing",
+]
+
+[[package]]
 name = "half"
 version = "2.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2499,7 +2518,7 @@ dependencies = [
  "futures-channel",
  "futures-core",
  "futures-util",
- "h2",
+ "h2 0.3.26",
  "http 0.2.12",
  "http-body 0.4.6",
  "httparse",
@@ -2522,6 +2541,7 @@ dependencies = [
  "bytes",
  "futures-channel",
  "futures-util",
+ "h2 0.4.5",
  "http 1.1.0",
  "http-body 1.0.1",
  "httparse",
@@ -4702,12 +4722,15 @@ checksum = "c7d6d2a27d57148378eb5e111173f4276ad26340ecc5c49a4a2152167a2d6a37"
 dependencies = [
  "base64 0.22.1",
  "bytes",
+ "encoding_rs",
  "futures-core",
  "futures-util",
+ "h2 0.4.5",
  "http 1.1.0",
  "http-body 1.0.1",
  "http-body-util",
  "hyper 1.4.1",
+ "hyper-rustls 0.27.2",
  "hyper-tls",
  "hyper-util",
  "ipnet",
@@ -4723,6 +4746,7 @@ dependencies = [
  "serde_json",
  "serde_urlencoded",
  "sync_wrapper 1.0.1",
+ "system-configuration",
  "tokio",
  "tokio-native-tls",
  "tower-service",
@@ -4961,6 +4985,7 @@ dependencies = [
  "num-format",
  "postgresql_embedded",
  "regex",
+ "reqwest",
  "rusqlite",
  "rust-i18n",
  "rust_decimal",
@@ -6180,6 +6205,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "system-configuration"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ba3a3adc5c275d719af8cb4272ea1c4a6d668a777f37e115f6d11ddbc1c8e0e7"
+dependencies = [
+ "bitflags 1.3.2",
+ "core-foundation",
+ "system-configuration-sys",
+]
+
+[[package]]
+name = "system-configuration-sys"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a75fb188eb626b924683e3b95e3a48e63551fcfb51949de2f06a9d91dbee93c9"
+dependencies = [
+ "core-foundation-sys",
+ "libc",
+]
+
+[[package]]
 name = "tabled"
 version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6677,7 +6723,7 @@ dependencies = [
  "axum",
  "base64 0.21.7",
  "bytes",
- "h2",
+ "h2 0.3.26",
  "http 0.2.12",
  "http-body 0.4.6",
  "hyper 0.14.30",

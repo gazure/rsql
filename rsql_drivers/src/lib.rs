@@ -28,6 +28,8 @@ pub mod rusqlite;
 pub mod sqlite;
 #[cfg(feature = "sqlserver")]
 mod sqlserver;
+#[cfg(feature = "snowflake")]
+mod snowflake;
 mod value;
 
 pub use connection::{
