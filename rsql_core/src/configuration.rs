@@ -244,6 +244,14 @@ impl ConfigurationBuilder {
         self
     }
 
+    /// Set the sigint ignore value
+    #[must_use]
+    #[allow(dead_code)]
+    pub fn with_sigint_ignore(mut self, sigint_ignore: bool) -> Self {
+        self.configuration.sigint_ignore = sigint_ignore;
+        self
+    }
+
     /// Build a [Configuration] instance.
     ///
     /// # Panics
@@ -335,6 +343,7 @@ pub struct Configuration {
     pub results_limit: usize,
     pub results_rows: bool,
     pub results_timer: bool,
+    pub sigint_ignore: bool,
 }
 
 impl Default for Configuration {
@@ -364,6 +373,7 @@ impl Default for Configuration {
             results_limit: 100,
             results_rows: true,
             results_timer: true,
+            sigint_ignore: false,
         }
     }
 }
@@ -664,6 +674,7 @@ mod test {
         assert_eq!(configuration.results_limit, 100);
         assert!(configuration.results_rows);
         assert!(configuration.results_timer);
+        assert!(!configuration.sigint_ignore);
     }
 
     #[test]

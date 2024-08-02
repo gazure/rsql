@@ -20,6 +20,10 @@ pub struct ShellArgs {
     /// Sequential list of commands to execute
     #[arg(last = true)]
     pub commands: Vec<String>,
+
+    /// Ignore SIGINT signals
+    #[arg(long, env = "RSQL_SIGINT_IGNORE")]
+    pub sigint_ignore: bool,
 }
 
 impl Default for ShellArgs {
@@ -28,6 +32,7 @@ impl Default for ShellArgs {
             url: DEFAULT_URL.to_string(),
             file: None,
             commands: vec![],
+            sigint_ignore: false,
         }
     }
 }
@@ -43,5 +48,6 @@ mod test {
         assert!(args.file.is_none());
         let empty_commands: Vec<String> = Vec::new();
         assert_eq!(args.commands, empty_commands);
+        assert!(!args.sigint_ignore)
     }
 }

@@ -74,6 +74,7 @@ pub struct Shell {
     pub command_manager: CommandManager,
     pub formatter_manager: FormatterManager,
     pub output: Output,
+    should_sigint_exit: bool,
 }
 
 /// Shell implementation.
@@ -153,6 +154,7 @@ impl Shell {
 
             let loop_condition = match editor.readline(&prompt) {
                 Ok(line) => {
+                    self.should_sigint_exit = false;
                     let loop_condition = match &self
                         .evaluate(connection, editor.history(), line.clone())
                         .await
@@ -169,7 +171,25 @@ impl Shell {
 
                     loop_condition
                 }
-                Err(ReadlineError::Interrupted) => LoopCondition::Continue,
+                Err(ReadlineError::Interrupted) => {
+                    if self.configuration.sigint_ignore {
+                        LoopCondition::Continue
+                    } else if self.should_sigint_exit {
+                        LoopCondition::Exit(0)
+                    } else {
+                        self.should_sigint_exit = true;
+                        let exit_command_str = t!("exit_command", locale = locale);
+                        eprintln!(
+                            "{}",
+                            t!(
+                                "exit_confirmation",
+                                locale = locale,
+                                exit_command = exit_command_str
+                            )
+                        );
+                        LoopCondition::Continue
+                    }
+                }
                 Err(error) => {
                     let mut error_string = t!("error", locale = locale).to_string();
                     let error_message = format!("{error:?}");
