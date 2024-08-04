@@ -20,6 +20,7 @@ form_urlencoded = { workspace = true, optional = true }
 futures-util = { workspace = true, optional = true }
 indexmap = { workspace = true, features = ["serde"] }
 indoc = { workspace = true }
+jwt-simple = { workspace = true, optional = true }
 libsql = { workspace = true, optional = true }
 mockall = { workspace = true }
 num-format = { workspace = true }
@@ -29,6 +30,7 @@ reqwest = { workspace = true, optional = true }
 rusqlite = { workspace = true, features = ["bundled-full"], optional = true }
 rust_decimal = { workspace = true }
 rust-i18n = { workspace = true }
+rustls = { workspace = true, optional = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true, features = ["preserve_order"] }
 sqlx = { workspace = true, features = ["bit-vec", "chrono", "json", "macros", "runtime-tokio", "rust_decimal", "time", "uuid"], optional = true }
@@ -91,6 +93,8 @@ rusqlite = [
 ]
 snowflake = [
     "dep:reqwest",
+    "dep:jwt-simple",
+    "dep:rustls",
 ]
 sqlite = [
     "dep:form_urlencoded",
