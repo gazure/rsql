@@ -4,6 +4,7 @@ use crate::MemoryQueryResult;
 use crate::Metadata;
 use crate::QueryResult;
 use crate::Result;
+use tracing::error;
 use async_trait::async_trait;
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
@@ -199,12 +200,9 @@ impl crate::Connection for SnowflakeConnection {
     }
 
     async fn query(&mut self, sql: &str) -> Result<Box<dyn QueryResult>> {
-        eprintln!("query: {}", sql);
         let response = self.request(sql).await?;
-        eprintln!("got response!");
-        eprintln!("{:?}", response.headers());
         let response_json: serde_json::Value = response.json().await.map_err(|e| {
-            eprintln!("error: {:?}", e);
+            error!("error: {:?}", e);
             Error::IoError(e.into())
         })?;
         eprintln!("{:?}", response_json);
