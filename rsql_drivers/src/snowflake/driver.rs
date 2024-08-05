@@ -4,9 +4,7 @@ use crate::MemoryQueryResult;
 use crate::Metadata;
 use crate::QueryResult;
 use crate::Result;
-use anyhow::anyhow;
-use reqwest::Client;
-use reqwest::Response;
+use chrono::{DateTime, Utc};
 use sha2::{Sha256, Digest};
 use jwt_simple::algorithms::RS256KeyPair;
 use jwt_simple::prelude::Duration;
@@ -17,8 +15,8 @@ use jwt_simple::prelude::RSAKeyPairLike;
 use serde_json::json;
 use std::collections::HashMap;
 use base64::engine::general_purpose::STANDARD;
+use tokio::sync::Mutex;
 use base64::Engine;
-use std::sync::{Arc, Mutex};
 use url::Url;
 
 #[derive(Debug)]
@@ -45,7 +43,8 @@ pub(crate) struct SnowflakeConnection {
     issuer: String,
     subject: String,
     key_pair: RS256KeyPair,
-    client: Arc<Mutex<reqwest::Client>>,
+    jwt_expires_at: DateTime<Utc>,
+    client: Mutex<reqwest::Client>,
 }
 
 impl SnowflakeConnection {
@@ -98,47 +97,67 @@ impl SnowflakeConnection {
         let issuer = format!("{}.{}.SHA256:{}", account, user, fingerprint);
         let subject = format!("{}.{}", account, user);
 
+        let base_url = format!("https://{}/api/v2/statements", base_url);
+        let now = chrono::Utc::now();
+        let jwt_expires_at = now + chrono::Duration::hours(1);
+        let client = Mutex::new(Self::new_client(&issuer, &subject, &key_pair)?);
+
+        Ok(Self {
+            base_url,
+            issuer,
+            subject,
+            key_pair,
+            jwt_expires_at,
+            client,
+        })
+    }
+
+    fn new_client(issuer: &str, subject: &str, key_pair: &RS256KeyPair) -> Result<reqwest::Client> {
         let claims = Claims::create(Duration::from_hours(1))
-            .with_issuer(&issuer)
-            .with_subject(&subject);
+            .with_issuer(issuer)
+            .with_subject(subject);
 
         let token = key_pair.sign(claims).map_err(|_| SnowflakeError::Unspecified)?;
+        eprintln!("{}", token);
 
         let mut headers = HashMap::new();
         headers.insert("Authorization".to_owned(), format!("Bearer {}", token.clone()));
         headers.insert("Content-Type".to_owned(), "application/json".to_owned());
         headers.insert("X-Snowflake-Authorization-Token-Type".to_owned(), "KEYPAIR_JWT".to_owned());
-        eprintln!("headers: {headers:?}, base_url: {base_url}");
 
-        let client = reqwest::ClientBuilder::new()
+        reqwest::ClientBuilder::new()
             .user_agent("rsql Snowflake Driver")
             .default_headers((&headers).try_into().map_err(|_| SnowflakeError::Unspecified)?)
             .build()
-            .map_err(|_| SnowflakeError::Unspecified)?;
-        let base_url = format!("https://{}/api/v2/statements", base_url);
-
-        Ok(Self {
-            base_url: format!("https://{}/api/v2/statements", base_url),
-            issuer,
-            subject,
-            key_pair,
-            client: Arc::new(Mutex::new(client)),
-        })
+            .map_err(|_| SnowflakeError::Unspecified.into())
     }
 
-    async fn request(&mut self, client: &Client, sql: &str) -> Result<Response> {
+    async fn request(&mut self, sql: &str) -> Result<reqwest::Response> {
+        if self.jwt_expires_at < chrono::Utc::now() {
+            eprintln!("renewing client");
+            let mut client = self.client.lock().await;
+            *client = Self::new_client(&self.issuer, &self.subject, &self.key_pair)?;
+        }
+
+        let client = self.client.lock().await;
+        eprintln!("loading...");
         client.post(&self.base_url)
             .body(json!({
                 "statement": sql,
                 "timeout": 10,
             }).to_string())
-            .send().await.map_err(|_| SnowflakeError::Unspecified.into())
+            .send().await.map_err(|e| {
+                eprintln!("error: {:?}", e);
+                Error::IoError(e.into())
+            })
     }
 }
 
 #[async_trait]
 impl crate::Connection for SnowflakeConnection {
     async fn execute(&mut self, sql: &str) -> Result<u64> {
+        let response = self.request(sql).await?;
+        eprintln!("{:?}", response.json().await.map_err(|_| Error::IoError(SnowflakeError::Unspecified.into()))?);
         Ok(0)
     }
 
@@ -147,6 +166,15 @@ impl crate::Connection for SnowflakeConnection {
     }
 
     async fn query(&mut self, sql: &str) -> Result<Box<dyn QueryResult>> {
+        eprintln!("query: {}", sql);
+        let response = self.request(sql).await?;
+        eprintln!("got response!");
+        eprintln!("{:?}", response.headers());
+        let response_json: serde_json::Value = response.json().await.map_err(|e| {
+            eprintln!("error: {:?}", e);
+            Error::IoError(e.into())
+        })?;
+        eprintln!("{:?}", response_json);
         let qr = MemoryQueryResult::new(vec![], vec![]);
         Ok(Box::new(qr))
     }
