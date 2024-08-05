@@ -1,8 +1,13 @@
 use crate::snowflake::SnowflakeError;
+use crate::Error;
 use crate::MemoryQueryResult;
 use crate::Metadata;
 use crate::QueryResult;
 use crate::Result;
+use anyhow::anyhow;
+use reqwest::Client;
+use reqwest::Response;
+use sha2::{Sha256, Digest};
 use jwt_simple::algorithms::RS256KeyPair;
 use jwt_simple::prelude::Duration;
 use async_trait::async_trait;
@@ -11,6 +16,8 @@ use jwt_simple::prelude::RS256PublicKey;
 use jwt_simple::prelude::RSAKeyPairLike;
 use serde_json::json;
 use std::collections::HashMap;
+use base64::engine::general_purpose::STANDARD;
+use base64::Engine;
 use std::sync::{Arc, Mutex};
 use url::Url;
 
@@ -35,10 +42,29 @@ impl crate::Driver for Driver {
 #[derive(Debug)]
 pub(crate) struct SnowflakeConnection {
     base_url: String,
+    issuer: String,
+    subject: String,
+    key_pair: RS256KeyPair,
     client: Arc<Mutex<reqwest::Client>>,
 }
 
 impl SnowflakeConnection {
+
+    /// Generate a fingerprint for a public key
+    /// Doing this manually since jwt_simple uses url-safe base64 when standard is required
+    ///
+    /// # Errors
+    /// Errors if the public key is malformed
+    fn public_key_fingerprint(public_key: &str) -> Result<String> {
+        let public_key = RS256PublicKey::from_pem(&public_key).map_err(|_| SnowflakeError::MissingPublicKey)?;
+        let pub_key_der = public_key.to_der().map_err(|_| SnowflakeError::MissingPublicKey)?;
+        let mut hasher = Sha256::new();
+        hasher.update(&pub_key_der);
+        let hash = hasher.finalize();
+        let public_key_fp = STANDARD.encode(hash);
+        Ok(public_key_fp)
+    }
+
     pub(crate) async fn new(url: String) -> Result<SnowflakeConnection> {
         let parsed_url = Url::parse(url.as_str())?;
         let query_params: HashMap<String, String> = parsed_url.query_pairs().into_owned().collect();
@@ -67,13 +93,14 @@ impl SnowflakeConnection {
         let private_key = std::fs::read_to_string(private_key_file).map_err(|_| SnowflakeError::MissingPrivateKey)?;
         let public_key = std::fs::read_to_string(public_key_file).map_err(|_| SnowflakeError::MissingPublicKey)?;
         let key_pair = RS256KeyPair::from_pem(&private_key).map_err(|_| SnowflakeError::MissingPrivateKey)?;
-        let public_key = RS256PublicKey::from_pem(&public_key).map_err(|_| SnowflakeError::MissingPublicKey)?;
-        let public_key_fp = public_key.sha256_thumbprint();
-        let public_key_fp_forced = "nR8guceFPPPm4oksBB1CGqVA1H/k+LfiwTPEhxevNrs=".to_owned();
-        eprintln!("public key fp: {public_key_fp}");
+
+        let fingerprint = Self::public_key_fingerprint(&public_key)?;
+        let issuer = format!("{}.{}.SHA256:{}", account, user, fingerprint);
+        let subject = format!("{}.{}", account, user);
+
         let claims = Claims::create(Duration::from_hours(1))
-            .with_issuer(format!("{}.{}.SHA256:{}", account, user, public_key_fp_forced))
-            .with_subject(format!("{}.{}", account, user));
+            .with_issuer(&issuer)
+            .with_subject(&subject);
 
         let token = key_pair.sign(claims).map_err(|_| SnowflakeError::Unspecified)?;
 
@@ -90,22 +117,22 @@ impl SnowflakeConnection {
             .map_err(|_| SnowflakeError::Unspecified)?;
         let base_url = format!("https://{}/api/v2/statements", base_url);
 
-        let req = client.post(base_url.to_string())
-            .body(json!({
-                "statement": "SELECT * FROM CARDSTEST.PUBLIC.CARDS",
-                "timeout": 10,
-            }).to_string())
-            .bearer_auth(token)
-            .build().map_err(|_| SnowflakeError::Unspecified)?;
-        let resp = client.execute(req).await.map_err(|_| SnowflakeError::Unspecified)?;
-        eprintln!("resp: {resp:?}");
-        let resp_content = resp.text().await.map_err(|_| SnowflakeError::Unspecified)?;
-        eprintln!("resp_content: {resp_content:?}");
-
         Ok(Self {
             base_url: format!("https://{}/api/v2/statements", base_url),
+            issuer,
+            subject,
+            key_pair,
             client: Arc::new(Mutex::new(client)),
         })
+    }
+
+    async fn request(&mut self, client: &Client, sql: &str) -> Result<Response> {
+        client.post(&self.base_url)
+            .body(json!({
+                "statement": sql,
+                "timeout": 10,
+            }).to_string())
+            .send().await.map_err(|_| SnowflakeError::Unspecified.into())
     }
 }
 

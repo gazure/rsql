@@ -20,11 +20,6 @@ pub enum Error {
         column_name: String,
         column_type: String,
     },
-
-    /// Error for a special snowflake
-    #[cfg(feature = "snowflake")]
-    #[error("snowflake error")]
-    SnowflakeError(crate::snowflake::SnowflakeError)
 }
 
 /// Converts a [`duckdb::Error`] into an [`IoError`](Error::IoError)
@@ -100,7 +95,7 @@ impl From<tiberius::error::Error> for Error {
 #[cfg(feature = "snowflake")]
 impl From<crate::snowflake::SnowflakeError> for Error {
     fn from(error: crate::snowflake::SnowflakeError) -> Self {
-        Error::SnowflakeError(error)
+        Error::IoError(error.into())
     }
 }
 
