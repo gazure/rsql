@@ -4,19 +4,19 @@ use crate::MemoryQueryResult;
 use crate::Metadata;
 use crate::QueryResult;
 use crate::Result;
-use chrono::{DateTime, Utc};
-use sha2::{Sha256, Digest};
-use jwt_simple::algorithms::RS256KeyPair;
-use jwt_simple::prelude::Duration;
 use async_trait::async_trait;
+use base64::engine::general_purpose::STANDARD;
+use base64::Engine;
+use chrono::{DateTime, Utc};
+use jwt_simple::algorithms::RS256KeyPair;
 use jwt_simple::claims::Claims;
+use jwt_simple::prelude::Duration;
 use jwt_simple::prelude::RS256PublicKey;
 use jwt_simple::prelude::RSAKeyPairLike;
 use serde_json::json;
+use sha2::{Digest, Sha256};
 use std::collections::HashMap;
-use base64::engine::general_purpose::STANDARD;
 use tokio::sync::Mutex;
-use base64::Engine;
 use url::Url;
 
 #[derive(Debug)]
@@ -48,15 +48,17 @@ pub(crate) struct SnowflakeConnection {
 }
 
 impl SnowflakeConnection {
-
     /// Generate a fingerprint for a public key
     /// Doing this manually since jwt_simple uses url-safe base64 when standard is required
     ///
     /// # Errors
     /// Errors if the public key is malformed
     fn public_key_fingerprint(public_key: &str) -> Result<String> {
-        let public_key = RS256PublicKey::from_pem(&public_key).map_err(|_| SnowflakeError::MissingPublicKey)?;
-        let pub_key_der = public_key.to_der().map_err(|_| SnowflakeError::MissingPublicKey)?;
+        let public_key =
+            RS256PublicKey::from_pem(&public_key).map_err(|_| SnowflakeError::MissingPublicKey)?;
+        let pub_key_der = public_key
+            .to_der()
+            .map_err(|_| SnowflakeError::MissingPublicKey)?;
         let mut hasher = Sha256::new();
         hasher.update(&pub_key_der);
         let hash = hasher.finalize();
@@ -67,8 +69,12 @@ impl SnowflakeConnection {
     pub(crate) async fn new(url: String) -> Result<SnowflakeConnection> {
         let parsed_url = Url::parse(url.as_str())?;
         let query_params: HashMap<String, String> = parsed_url.query_pairs().into_owned().collect();
-        let base_url = parsed_url.host_str().ok_or(SnowflakeError::MissingAccount)?.to_string();
-        let account = base_url.split(".")
+        let base_url = parsed_url
+            .host_str()
+            .ok_or(SnowflakeError::MissingAccount)?
+            .to_string();
+        let account = base_url
+            .split(".")
             .next()
             .ok_or(SnowflakeError::MissingAccount)?
             .to_string();
@@ -89,9 +95,12 @@ impl SnowflakeConnection {
             private_key_file, account, user, public_key_file
         );
 
-        let private_key = std::fs::read_to_string(private_key_file).map_err(|_| SnowflakeError::MissingPrivateKey)?;
-        let public_key = std::fs::read_to_string(public_key_file).map_err(|_| SnowflakeError::MissingPublicKey)?;
-        let key_pair = RS256KeyPair::from_pem(&private_key).map_err(|_| SnowflakeError::MissingPrivateKey)?;
+        let private_key = std::fs::read_to_string(private_key_file)
+            .map_err(|_| SnowflakeError::MissingPrivateKey)?;
+        let public_key = std::fs::read_to_string(public_key_file)
+            .map_err(|_| SnowflakeError::MissingPublicKey)?;
+        let key_pair =
+            RS256KeyPair::from_pem(&private_key).map_err(|_| SnowflakeError::MissingPrivateKey)?;
 
         let fingerprint = Self::public_key_fingerprint(&public_key)?;
         let issuer = format!("{}.{}.SHA256:{}", account, user, fingerprint);
@@ -117,17 +126,29 @@ impl SnowflakeConnection {
             .with_issuer(issuer)
             .with_subject(subject);
 
-        let token = key_pair.sign(claims).map_err(|_| SnowflakeError::Unspecified)?;
+        let token = key_pair
+            .sign(claims)
+            .map_err(|_| SnowflakeError::Unspecified)?;
         eprintln!("{}", token);
 
         let mut headers = HashMap::new();
-        headers.insert("Authorization".to_owned(), format!("Bearer {}", token.clone()));
+        headers.insert(
+            "Authorization".to_owned(),
+            format!("Bearer {}", token.clone()),
+        );
         headers.insert("Content-Type".to_owned(), "application/json".to_owned());
-        headers.insert("X-Snowflake-Authorization-Token-Type".to_owned(), "KEYPAIR_JWT".to_owned());
+        headers.insert(
+            "X-Snowflake-Authorization-Token-Type".to_owned(),
+            "KEYPAIR_JWT".to_owned(),
+        );
 
         reqwest::ClientBuilder::new()
             .user_agent("rsql Snowflake Driver")
-            .default_headers((&headers).try_into().map_err(|_| SnowflakeError::Unspecified)?)
+            .default_headers(
+                (&headers)
+                    .try_into()
+                    .map_err(|_| SnowflakeError::Unspecified)?,
+            )
             .build()
             .map_err(|_| SnowflakeError::Unspecified.into())
     }
@@ -141,12 +162,18 @@ impl SnowflakeConnection {
 
         let client = self.client.lock().await;
         eprintln!("loading...");
-        client.post(&self.base_url)
-            .body(json!({
-                "statement": sql,
-                "timeout": 10,
-            }).to_string())
-            .send().await.map_err(|e| {
+        client
+            .post(&self.base_url)
+            .body(
+                json!({
+                    "statement": sql,
+                    "timeout": 10,
+                })
+                .to_string(),
+            )
+            .send()
+            .await
+            .map_err(|e| {
                 eprintln!("error: {:?}", e);
                 Error::IoError(e.into())
             })
@@ -157,7 +184,13 @@ impl SnowflakeConnection {
 impl crate::Connection for SnowflakeConnection {
     async fn execute(&mut self, sql: &str) -> Result<u64> {
         let response = self.request(sql).await?;
-        eprintln!("{:?}", response.json().await.map_err(|_| Error::IoError(SnowflakeError::Unspecified.into()))?);
+        eprintln!(
+            "{:?}",
+            response
+                .json()
+                .await
+                .map_err(|_| Error::IoError(SnowflakeError::Unspecified.into()))?
+        );
         Ok(0)
     }
 
