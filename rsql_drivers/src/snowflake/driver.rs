@@ -5,6 +5,7 @@ use crate::Metadata;
 use crate::QueryResult;
 use crate::Result;
 use tracing::error;
+use tracing::{info, warn};
 use async_trait::async_trait;
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
@@ -56,7 +57,7 @@ impl SnowflakeConnection {
     /// Errors if the public key is malformed
     fn public_key_fingerprint(public_key: &str) -> Result<String> {
         let public_key =
-            RS256PublicKey::from_pem(&public_key).map_err(|_| SnowflakeError::MissingPublicKey)?;
+            RS256PublicKey::from_pem(&public_key).map_err(|e| SnowflakeError::MissingPublicKey)?;
         let pub_key_der = public_key
             .to_der()
             .map_err(|_| SnowflakeError::MissingPublicKey)?;
@@ -91,7 +92,7 @@ impl SnowflakeConnection {
             .get("public_key_file")
             .ok_or(SnowflakeError::MissingPublicKey)?
             .to_string();
-        eprintln!(
+        warn!(
             "private_key: {}, account: {}, user: {}, public_key: {}",
             private_key_file, account, user, public_key_file
         );
@@ -130,7 +131,7 @@ impl SnowflakeConnection {
         let token = key_pair
             .sign(claims)
             .map_err(|_| SnowflakeError::Unspecified)?;
-        eprintln!("{}", token);
+        warn!("{}", token);
 
         let mut headers = HashMap::new();
         headers.insert(
@@ -156,13 +157,11 @@ impl SnowflakeConnection {
 
     async fn request(&mut self, sql: &str) -> Result<reqwest::Response> {
         if self.jwt_expires_at < chrono::Utc::now() {
-            eprintln!("renewing client");
             let mut client = self.client.lock().await;
             *client = Self::new_client(&self.issuer, &self.subject, &self.key_pair)?;
         }
 
         let client = self.client.lock().await;
-        eprintln!("loading...");
         client
             .post(&self.base_url)
             .body(
@@ -175,7 +174,7 @@ impl SnowflakeConnection {
             .send()
             .await
             .map_err(|e| {
-                eprintln!("error: {:?}", e);
+                error!("error: {:?}", e);
                 Error::IoError(e.into())
             })
     }
@@ -185,7 +184,7 @@ impl SnowflakeConnection {
 impl crate::Connection for SnowflakeConnection {
     async fn execute(&mut self, sql: &str) -> Result<u64> {
         let response = self.request(sql).await?;
-        eprintln!(
+        warn!(
             "{:?}",
             response
                 .json()
@@ -205,7 +204,7 @@ impl crate::Connection for SnowflakeConnection {
             error!("error: {:?}", e);
             Error::IoError(e.into())
         })?;
-        eprintln!("{:?}", response_json);
+        info!("{:?}", response_json);
         let qr = MemoryQueryResult::new(vec![], vec![]);
         Ok(Box::new(qr))
     }
