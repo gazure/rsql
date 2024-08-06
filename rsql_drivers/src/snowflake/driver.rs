@@ -1,11 +1,10 @@
 use crate::snowflake::SnowflakeError;
-use crate::Error;
 use crate::MemoryQueryResult;
 use crate::Metadata;
 use crate::QueryResult;
 use crate::Result;
-use tracing::error;
-use tracing::{info, warn};
+use crate::Row;
+use crate::Value;
 use async_trait::async_trait;
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
@@ -15,10 +14,12 @@ use jwt_simple::claims::Claims;
 use jwt_simple::prelude::Duration;
 use jwt_simple::prelude::RS256PublicKey;
 use jwt_simple::prelude::RSAKeyPairLike;
+use reqwest::header::HeaderMap;
 use serde_json::json;
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use tokio::sync::Mutex;
+use tracing::{error, info};
 use url::Url;
 
 #[derive(Debug)]
@@ -56,11 +57,11 @@ impl SnowflakeConnection {
     /// # Errors
     /// Errors if the public key is malformed
     fn public_key_fingerprint(public_key: &str) -> Result<String> {
-        let public_key =
-            RS256PublicKey::from_pem(&public_key).map_err(|e| SnowflakeError::MissingPublicKey)?;
+        let public_key = RS256PublicKey::from_pem(&public_key)
+            .map_err(|_| SnowflakeError::MalformedPublicKey)?;
         let pub_key_der = public_key
             .to_der()
-            .map_err(|_| SnowflakeError::MissingPublicKey)?;
+            .map_err(|_| SnowflakeError::MalformedPublicKey)?;
         let mut hasher = Sha256::new();
         hasher.update(&pub_key_der);
         let hash = hasher.finalize();
@@ -92,10 +93,6 @@ impl SnowflakeConnection {
             .get("public_key_file")
             .ok_or(SnowflakeError::MissingPublicKey)?
             .to_string();
-        warn!(
-            "private_key: {}, account: {}, user: {}, public_key: {}",
-            private_key_file, account, user, public_key_file
-        );
 
         let private_key = std::fs::read_to_string(private_key_file)
             .map_err(|_| SnowflakeError::MissingPrivateKey)?;
@@ -109,8 +106,7 @@ impl SnowflakeConnection {
         let subject = format!("{}.{}", account, user);
 
         let base_url = format!("https://{}/api/v2/statements", base_url);
-        let now = chrono::Utc::now();
-        let jwt_expires_at = now + chrono::Duration::hours(1);
+        let jwt_expires_at = chrono::Utc::now() + chrono::Duration::hours(1);
         let client = Mutex::new(Self::new_client(&issuer, &subject, &key_pair)?);
 
         Ok(Self {
@@ -130,8 +126,8 @@ impl SnowflakeConnection {
 
         let token = key_pair
             .sign(claims)
-            .map_err(|_| SnowflakeError::Unspecified)?;
-        warn!("{}", token);
+            .map_err(|_| SnowflakeError::JwtSignature)?;
+        info!("{token}");
 
         let mut headers = HashMap::new();
         headers.insert(
@@ -143,16 +139,15 @@ impl SnowflakeConnection {
             "X-Snowflake-Authorization-Token-Type".to_owned(),
             "KEYPAIR_JWT".to_owned(),
         );
+        let header_map: HeaderMap = (&headers)
+            .try_into()
+            .map_err(|_| SnowflakeError::MalformedHeaders)?;
 
         reqwest::ClientBuilder::new()
-            .user_agent("rsql Snowflake Driver")
-            .default_headers(
-                (&headers)
-                    .try_into()
-                    .map_err(|_| SnowflakeError::Unspecified)?,
-            )
+            .user_agent("rsql-Snowflake-Driver")
+            .default_headers(header_map)
             .build()
-            .map_err(|_| SnowflakeError::Unspecified.into())
+            .map_err(|_| SnowflakeError::ClientCreation.into())
     }
 
     async fn request(&mut self, sql: &str) -> Result<reqwest::Response> {
@@ -174,8 +169,8 @@ impl SnowflakeConnection {
             .send()
             .await
             .map_err(|e| {
-                error!("error: {:?}", e);
-                Error::IoError(e.into())
+                error!("snowflake request error: {:?}", e);
+                SnowflakeError::Request.into()
             })
     }
 }
@@ -184,14 +179,22 @@ impl SnowflakeConnection {
 impl crate::Connection for SnowflakeConnection {
     async fn execute(&mut self, sql: &str) -> Result<u64> {
         let response = self.request(sql).await?;
-        warn!(
-            "{:?}",
-            response
-                .json()
-                .await
-                .map_err(|_| Error::IoError(SnowflakeError::Unspecified.into()))?
-        );
-        Ok(0)
+        let status = response.status();
+        if !status.is_success() {
+            error!("error: {:?}", response.text().await);
+            return Err(SnowflakeError::Response.into());
+        }
+        let response_json: serde_json::Value = response.json().await.map_err(|e| {
+            error!("error: {:?}", e);
+            SnowflakeError::Response
+        })?;
+        info!("{:?}", response_json.clone());
+        let row_count = response_json["data"][0][0]
+            .as_str()
+            .ok_or(SnowflakeError::Response)?
+            .parse::<u64>()
+            .map_err(|_| SnowflakeError::Response)?;
+        Ok(row_count)
     }
 
     async fn metadata(&mut self) -> Result<Metadata> {
@@ -202,10 +205,47 @@ impl crate::Connection for SnowflakeConnection {
         let response = self.request(sql).await?;
         let response_json: serde_json::Value = response.json().await.map_err(|e| {
             error!("error: {:?}", e);
-            Error::IoError(e.into())
+            SnowflakeError::Response
         })?;
         info!("{:?}", response_json);
-        let qr = MemoryQueryResult::new(vec![], vec![]);
+
+        let _handle = response_json["statementHandle"]
+            .as_str()
+            .ok_or(SnowflakeError::Response)?;
+        let _partitions = response_json["resultSetMetaData"]["partitionInfo"]
+            .as_array()
+            .ok_or(SnowflakeError::Response)?;
+        let column_names: Vec<_> = response_json["resultSetMetaData"]["rowType"]
+            .as_array()
+            .ok_or(SnowflakeError::Response)?
+            .iter()
+            .map(|value| {
+                let name = value["name"]
+                    .as_str()
+                    .unwrap_or("name not found")
+                    .to_string();
+                name
+            })
+            .collect();
+
+        let rows: Vec<Row> = response_json["data"]
+            .as_array()
+            .ok_or(SnowflakeError::Response)?
+            .iter()
+            .map(|row| {
+                let default = vec![];
+                let row = row.as_array().unwrap_or(&default);
+                let values: Vec<Value> = row
+                    .iter()
+                    .map(|value| {
+                        Value::String(value.as_str().unwrap_or("value not found").to_string())
+                    })
+                    .collect();
+                Row::new(values)
+            })
+            .collect();
+
+        let qr = MemoryQueryResult::new(column_names, rows);
         Ok(Box::new(qr))
     }
 
