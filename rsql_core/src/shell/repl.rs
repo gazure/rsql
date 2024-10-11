@@ -123,7 +123,7 @@ impl Shell {
             editor.set_color_mode(ColorMode::Disabled);
         }
         editor.set_edit_mode(self.configuration.edit_mode);
-        editor.set_completion_type(CompletionType::Circular);
+        editor.set_completion_type(CompletionType::Ratatui);
         editor.set_helper(Some(helper));
 
         if self.configuration.history {
