@@ -125,7 +125,6 @@ impl Shell {
         editor.set_edit_mode(self.configuration.edit_mode);
         editor.set_completion_type(CompletionType::Ratatui);
         editor.set_helper(Some(helper));
-
         if self.configuration.history {
             let _ = editor.load_history(history_file);
             editor.set_history_ignore_dups(self.configuration.history_ignore_dups)?;

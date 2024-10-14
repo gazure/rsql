@@ -37,11 +37,7 @@ impl crate::Formatter for Formatter {
             data.push(query_result.columns().await);
             rows = process_data(options, query_result, &mut data).await?;
             let locale = options.locale.clone();
-            let table = ExtendedTable::from(data).template(move |index| {
-                let format_locale = Locale::from_str(&locale).unwrap_or(Locale::en);
-                let record = (index + 1).to_formatted_string(&format_locale);
-                t!("expanded_record", locale = &locale, record = record).to_string()
-            });
+            let table = ExtendedTable::from(data);
 
             writeln!(output, "{table}")?;
         }
