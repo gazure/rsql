@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## `rsql_formatters` - [0.15.4](https://github.com/gazure/rsql/compare/rsql_formatters-v0.15.3...rsql_formatters-v0.15.4) - 2025-02-01
+
+### Other
+- update Cargo.toml dependencies
+
+## `rsql_core` - [0.15.4](https://github.com/gazure/rsql/compare/rsql_core-v0.15.3...rsql_core-v0.15.4) - 2025-02-01
+
+### Other
+- update colored=3.0.0, dark-light=2.0.0, file-type=0.2.2
+
+## `rsql_cli` - [0.15.4](https://github.com/gazure/rsql/compare/v0.15.3...v0.15.4) - 2025-02-01
+
+### Other
+- correct limit documentation
+- update to Rust 1.84.0
+- update colored=3.0.0, dark-light=2.0.0, file-type=0.2.2
+- update polars=0.46.0 and postgresql_embedded=0.17.5
+- update dirs=6.0.0 and file-type=0.3.0
+- add driver wasm builds
+- update Cargo.toml dependencies
+
+## `rsql_drivers` - [0.15.4](https://github.com/gazure/rsql/compare/rsql_drivers-v0.15.3...rsql_drivers-v0.15.4) - 2025-02-01
+
+### Other
+- update polars=0.46.0 and postgresql_embedded=0.17.5
+- update dirs=6.0.0 and file-type=0.3.0
+- add driver wasm builds
+- update to Rust 1.84.0
+
 ## `rsql` - [v0.15.3](https://github.com/theseus-rs/rsql/compare/v0.15.2...v0.15.3) - 2025-01-09
 
 ### Build
