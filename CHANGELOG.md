@@ -7,6 +7,178 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## `rsql_cli` - [0.17.3](https://github.com/gazure/rsql/compare/v0.17.2...v0.17.3) - 2025-03-19
+
+### Added
+- add truncate_ragged_lines parameter to csv, delimited and tsv drivers
+
+### Other
+- update Cargo.toml dependencies
+- update formatters to support wasm
+- update dependencies
+- replace chrono with jiff
+
+## `rsql_core` - [0.17.3](https://github.com/gazure/rsql/compare/rsql_core-v0.17.2...rsql_core-v0.17.3) - 2025-03-19
+
+### Other
+- update formatters to support wasm
+
+## `rsql_formatters` - [0.17.3](https://github.com/gazure/rsql/compare/rsql_formatters-v0.17.2...rsql_formatters-v0.17.3) - 2025-03-19
+
+### Other
+- update formatters to support wasm
+
+## `rsql_drivers` - [0.17.3](https://github.com/gazure/rsql/compare/rsql_drivers-v0.17.2...rsql_drivers-v0.17.3) - 2025-03-19
+
+### Other
+- update formatters to support wasm
+
+## `rsql_driver_yaml` - [0.17.3](https://github.com/gazure/rsql/compare/rsql_driver_yaml-v0.17.2...rsql_driver_yaml-v0.17.3) - 2025-03-19
+
+### Other
+- update Cargo.toml dependencies
+
+## `rsql_driver_xml` - [0.17.3](https://github.com/gazure/rsql/compare/rsql_driver_xml-v0.17.2...rsql_driver_xml-v0.17.3) - 2025-03-19
+
+### Other
+- update Cargo.toml dependencies
+
+## `rsql_driver_tsv` - [0.17.3](https://github.com/gazure/rsql/compare/rsql_driver_tsv-v0.17.2...rsql_driver_tsv-v0.17.3) - 2025-03-19
+
+### Added
+- add truncate_ragged_lines parameter to csv, delimited and tsv drivers
+
+## `rsql_driver_sqlserver` - [0.17.3](https://github.com/gazure/rsql/compare/rsql_driver_sqlserver-v0.17.2...rsql_driver_sqlserver-v0.17.3) - 2025-03-19
+
+### Other
+- replace chrono with jiff
+
+## `rsql_driver_snowflake` - [0.17.3](https://github.com/gazure/rsql/compare/rsql_driver_snowflake-v0.17.2...rsql_driver_snowflake-v0.17.3) - 2025-03-19
+
+### Other
+- replace chrono with jiff
+
+## `rsql_driver_rusqlite` - [0.17.3](https://github.com/gazure/rsql/compare/rsql_driver_rusqlite-v0.17.2...rsql_driver_rusqlite-v0.17.3) - 2025-03-19
+
+### Other
+- update Cargo.toml dependencies
+
+## `rsql_driver_sqlite` - [0.17.3](https://github.com/gazure/rsql/compare/rsql_driver_sqlite-v0.17.2...rsql_driver_sqlite-v0.17.3) - 2025-03-19
+
+### Other
+- update Cargo.toml dependencies
+
+## `rsql_driver_redshift` - [0.17.3](https://github.com/gazure/rsql/compare/rsql_driver_redshift-v0.17.2...rsql_driver_redshift-v0.17.3) - 2025-03-19
+
+### Other
+- update Cargo.toml dependencies
+
+## `rsql_driver_postgres` - [0.17.3](https://github.com/gazure/rsql/compare/rsql_driver_postgres-v0.17.2...rsql_driver_postgres-v0.17.3) - 2025-03-19
+
+### Other
+- replace chrono with jiff
+
+## `rsql_driver_parquet` - [0.17.3](https://github.com/gazure/rsql/compare/rsql_driver_parquet-v0.17.2...rsql_driver_parquet-v0.17.3) - 2025-03-19
+
+### Other
+- update Cargo.toml dependencies
+
+## `rsql_driver_orc` - [0.17.3](https://github.com/gazure/rsql/compare/rsql_driver_orc-v0.17.2...rsql_driver_orc-v0.17.3) - 2025-03-19
+
+### Other
+- update Cargo.toml dependencies
+
+## `rsql_driver_ods` - [0.17.3](https://github.com/gazure/rsql/compare/rsql_driver_ods-v0.17.2...rsql_driver_ods-v0.17.3) - 2025-03-19
+
+### Other
+- update Cargo.toml dependencies
+
+## `rsql_driver_mariadb` - [0.17.3](https://github.com/gazure/rsql/compare/rsql_driver_mariadb-v0.17.2...rsql_driver_mariadb-v0.17.3) - 2025-03-19
+
+### Other
+- update Cargo.toml dependencies
+
+## `rsql_driver_mysql` - [0.17.3](https://github.com/gazure/rsql/compare/rsql_driver_mysql-v0.17.2...rsql_driver_mysql-v0.17.3) - 2025-03-19
+
+### Other
+- replace chrono with jiff
+
+## `rsql_driver_libsql` - [0.17.3](https://github.com/gazure/rsql/compare/rsql_driver_libsql-v0.17.2...rsql_driver_libsql-v0.17.3) - 2025-03-19
+
+### Other
+- update Cargo.toml dependencies
+
+## `rsql_driver_jsonl` - [0.17.3](https://github.com/gazure/rsql/compare/rsql_driver_jsonl-v0.17.2...rsql_driver_jsonl-v0.17.3) - 2025-03-19
+
+### Other
+- update Cargo.toml dependencies
+
+## `rsql_driver_json` - [0.17.3](https://github.com/gazure/rsql/compare/rsql_driver_json-v0.17.2...rsql_driver_json-v0.17.3) - 2025-03-19
+
+### Other
+- update Cargo.toml dependencies
+
+## `rsql_driver_fwf` - [0.17.3](https://github.com/gazure/rsql/compare/rsql_driver_fwf-v0.17.2...rsql_driver_fwf-v0.17.3) - 2025-03-19
+
+### Other
+- update Cargo.toml dependencies
+
+## `rsql_driver_excel` - [0.17.3](https://github.com/gazure/rsql/compare/rsql_driver_excel-v0.17.2...rsql_driver_excel-v0.17.3) - 2025-03-19
+
+### Other
+- update Cargo.toml dependencies
+
+## `rsql_driver_duckdb` - [0.17.3](https://github.com/gazure/rsql/compare/rsql_driver_duckdb-v0.17.2...rsql_driver_duckdb-v0.17.3) - 2025-03-19
+
+### Other
+- update dependencies
+- replace chrono with jiff
+
+## `rsql_driver_csv` - [0.17.3](https://github.com/gazure/rsql/compare/rsql_driver_csv-v0.17.2...rsql_driver_csv-v0.17.3) - 2025-03-19
+
+### Added
+- add truncate_ragged_lines parameter to csv, delimited and tsv drivers
+
+### Other
+- update dependencies
+
+## `rsql_driver_delimited` - [0.17.3](https://github.com/gazure/rsql/compare/rsql_driver_delimited-v0.17.2...rsql_driver_delimited-v0.17.3) - 2025-03-19
+
+### Added
+- add truncate_ragged_lines parameter to csv, delimited and tsv drivers
+
+## `rsql_driver_cockroachdb` - [0.17.3](https://github.com/gazure/rsql/compare/rsql_driver_cockroachdb-v0.17.2...rsql_driver_cockroachdb-v0.17.3) - 2025-03-19
+
+### Other
+- update Cargo.toml dependencies
+
+## `rsql_driver_postgresql` - [0.17.3](https://github.com/gazure/rsql/compare/rsql_driver_postgresql-v0.17.2...rsql_driver_postgresql-v0.17.3) - 2025-03-19
+
+### Other
+- replace chrono with jiff
+
+## `rsql_driver_avro` - [0.17.3](https://github.com/gazure/rsql/compare/rsql_driver_avro-v0.17.2...rsql_driver_avro-v0.17.3) - 2025-03-19
+
+### Other
+- update dependencies
+
+## `rsql_driver_arrow` - [0.17.3](https://github.com/gazure/rsql/compare/rsql_driver_arrow-v0.17.2...rsql_driver_arrow-v0.17.3) - 2025-03-19
+
+### Other
+- update Cargo.toml dependencies
+
+## `rsql_driver_polars` - [0.17.3](https://github.com/gazure/rsql/compare/rsql_driver_polars-v0.17.2...rsql_driver_polars-v0.17.3) - 2025-03-19
+
+### Other
+- replace chrono with jiff
+
+## `rsql_driver` - [0.17.3](https://github.com/gazure/rsql/compare/rsql_driver-v0.17.2...rsql_driver-v0.17.3) - 2025-03-19
+
+### Other
+- update formatters to support wasm
+- update dependencies
+- replace chrono with jiff
+
 ## `rsql_cli` - [0.17.2](https://github.com/theseus-rs/rsql/compare/v0.17.1...v0.17.2) - 2025-03-11
 
 ### Added
